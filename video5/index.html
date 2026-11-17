@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>JD360 — Tchan-Zâca</title>
+  <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+  <style>
+    html, body { height: 100%; margin: 0; overflow: hidden; background: #000; font-family: Arial, sans-serif; }
+    #intro { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; text-align: center; padding: 24px;
+      box-sizing: border-box; color: #fff; background: rgba(0,0,0,.94); }
+    h1 { font-weight: normal; letter-spacing: .16em; margin: 0 0 18px; }
+    p { line-height: 1.5; max-width: 420px; }
+    button { font: inherit; padding: 14px 22px; border: 1px solid #fff; background: #fff;
+      color: #000; border-radius: 6px; cursor: pointer; }
+    button:disabled { opacity: .6; cursor: wait; }
+    #message { min-height: 2em; font-size: 14px; }
+    #controls { position: fixed; z-index: 10; bottom: max(16px, env(safe-area-inset-bottom));
+      right: 16px; display: none; gap: 8px; }
+    #controls button { font-size: 14px; padding: 10px 12px; background: rgba(0,0,0,.65);
+      color: #fff; border: 1px solid rgba(255,255,255,.6); }
+  </style>
+</head>
+<body>
+  <div id="intro">
+    <h1>JD360</h1>
+    <p>Explorez la vidéo à 360° en tournant votre téléphone sur lui-même, ou en faisant glisser l'image avec le doigt.</p>
+    <button id="start" type="button">Entrer dans la vidéo</button>
+    <p id="message" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="controls">
+    <button id="pause" type="button">Pause</button>
+    <button id="sound" type="button">Activer le son</button>
+  </div>
+
+  <a-scene embedded vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false"
+           renderer="colorManagement: true" background="color: #000">
+    <a-assets timeout="60000">
+      <!-- Renommer votre fichier vidéo en vidéo.mp4, ou modifier cette ligne. -->
+      <video id="video360" src="video5.mp4" preload="metadata" loop muted playsinline
+             webkit-playsinline crossorigin="anonymous"></video>
+    </a-assets>
+    <a-videosphere src="#video360" rotation="0 -90 0"></a-videosphere>
+    <a-entity camera look-controls="enabled: true; magicWindowTrackingEnabled: true"
+              position="0 0 0"></a-entity>
+  </a-scene>
+
+  <script>
+    const video = document.getElementById('video360');
+    const start = document.getElementById('start');
+    const intro = document.getElementById('intro');
+    const message = document.getElementById('message');
+    const controls = document.getElementById('controls');
+    const pause = document.getElementById('pause');
+    const sound = document.getElementById('sound');
+
+    start.addEventListener('click', async () => {
+      start.disabled = true;
+      message.textContent = '';
+      try {
+        // Sur iPhone/iPad, l'autorisation doit être demandée après un geste utilisateur.
+        if (typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function') {
+          try {
+            const result = await DeviceOrientationEvent.requestPermission();
+            if (result !== 'granted') {
+              message.textContent = 'Capteur non autorisé : vous pourrez explorer avec le doigt.';
+            }
+          } catch (error) {
+            message.textContent = 'Capteur indisponible : navigation possible avec le doigt.';
+          }
+        }
+        video.muted = true; // démarrage fiable sur les téléphones
+        await video.play();
+        intro.style.display = 'none';
+        controls.style.display = 'flex';
+      } catch (error) {
+        console.error('Erreur vidéo 360° :', error);
+        message.textContent = 'La vidéo ne démarre pas. Vérifiez que video.mp4 est bien dans le même dossier que index.html et qu’elle est encodée en MP4 compatible avec le navigateur.';
+      } finally {
+        start.disabled = false;
+      }
+    });
+
+    pause.addEventListener('click', () => {
+      if (video.paused) {
+        video.play().then(() => { pause.textContent = 'Pause'; }).catch(console.error);
+      } else {
+        video.pause();
+        pause.textContent = 'Reprendre';
+      }
+    });
+
+    sound.addEventListener('click', () => {
+      video.muted = !video.muted;
+      sound.textContent = video.muted ? 'Activer le son' : 'Couper le son';
+    });
+  </script>
+</body>
+</html>
